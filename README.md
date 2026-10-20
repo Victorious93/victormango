@@ -11,3 +11,13 @@ Part of the Victorious fleet. Package id: `com.victorious.mango`.
 - OpenWrt ubus: https://openwrt.org/docs/techref/ubus
 - OpenWrt LuCI JSON-RPC: https://github.com/openwrt/luci/wiki/JsonRpcHowTo
 - OpenWrt UCI: https://openwrt.org/docs/guide-user/base-system/uci
+
+## Build
+`./gradlew assembleDebug` (JDK 17, Android SDK 35). CI builds the debug APK on every PR and uploads it as the `victormango-debug-apk` artifact.
+`app/debug.keystore` is a fixed debug key (`android`/`androiddebugkey`/`android`). Release keys are never committed.
+
+## Structure
+- `router/RouterClient.kt` – transport-agnostic interface (SSH transport: TODO)
+- `router/GlInetRpcClient.kt` – GL.iNet 4.x `/rpc` client: challenge → login → sid → call (auth real, features stubbed)
+- `router/GlInetAuth.kt` – md5-crypt + login hash, unit-tested against the doc vectors
+- `ui/screens` – Status, Wi-Fi, VPN/WireGuard, AdGuard, Tether, Firmware
