@@ -29,7 +29,11 @@ class MainActivity : ComponentActivity() {
     private val client: RouterClient = GlInetRpcClient()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { VictorMangoTheme { App(client) } }
+        val fleet = (application as VictorMangoApp).fleetTheme
+        setContent {
+            val fleetState by fleet.state.collectAsState()
+            VictorMangoTheme(fleetState) { App(client) }
+        }
     }
 }
 
@@ -37,14 +41,14 @@ class MainActivity : ComponentActivity() {
 fun App(client: RouterClient) {
     val nav = rememberNavController()
     val current = nav.currentBackStackEntryAsState().value?.destination?.route
-    Scaffold(containerColor = NearBlack, bottomBar = {
-        NavigationBar(containerColor = Surface1) {
+    Scaffold(containerColor = MaterialTheme.colorScheme.background, bottomBar = {
+        NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
             Dest.entries.forEach { d ->
                 NavigationBarItem(
                     selected = current == d.route,
                     onClick = { nav.navigate(d.route) { launchSingleTop = true; popUpTo(Dest.Status.route) } },
                     icon = { Icon(d.icon, d.label) }, label = { Text(d.label) },
-                    colors = NavigationBarItemDefaults.colors(selectedIconColor = NeonCyan, selectedTextColor = NeonCyan, indicatorColor = NeonMagenta.copy(alpha = 0.25f)),
+                    colors = NavigationBarItemDefaults.colors(selectedIconColor = MaterialTheme.colorScheme.primary, selectedTextColor = MaterialTheme.colorScheme.primary, indicatorColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.25f)),
                 )
             }
         }

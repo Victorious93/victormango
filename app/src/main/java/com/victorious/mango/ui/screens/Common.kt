@@ -9,23 +9,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.victorious.mango.ui.theme.NeonCyan
-import com.victorious.mango.ui.theme.NeonMagenta
 
 @Composable
 fun ScreenScaffold(title: String, subtitle: String, content: @Composable ColumnScope.() -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(title, style = MaterialTheme.typography.headlineMedium, color = NeonCyan)
-        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = NeonMagenta)
+        Text(title, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
+        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
         content()
     }
 }
 
 @Composable
 fun NeonCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    OutlinedCard(Modifier.fillMaxWidth(), border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.6f))) {
+    OutlinedCard(Modifier.fillMaxWidth(), border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = NeonCyan)
+            Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             content()
         }
     }
@@ -40,5 +38,5 @@ fun InfoRow(label: String, value: String) = Row(Modifier.fillMaxWidth(), horizon
 fun ToggleRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) =
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Text(label)
-        Switch(checked, onChange, colors = SwitchDefaults.colors(checkedTrackColor = NeonMagenta, checkedThumbColor = NeonCyan))
+        Switch(checked, onChange, colors = SwitchDefaults.colors(checkedTrackColor = MaterialTheme.colorScheme.secondary, checkedThumbColor = MaterialTheme.colorScheme.primary))
     }
