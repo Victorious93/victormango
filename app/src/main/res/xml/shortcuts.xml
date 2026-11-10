@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="vpn_on"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_vpn_on"
+        android:shortcutLongLabel="@string/shortcut_vpn_on_long"
+        android:shortcutDisabledMessage="@string/shortcut_vpn_disabled">
+        <intent
+            android:action="com.victorious.mango.action.VPN_ON"
+            android:targetPackage="com.victorious.mango"
+            android:targetClass="com.victorious.mango.VpnToggleActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="vpn_off"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_vpn_off"
+        android:shortcutLongLabel="@string/shortcut_vpn_off_long"
+        android:shortcutDisabledMessage="@string/shortcut_vpn_disabled">
+        <intent
+            android:action="com.victorious.mango.action.VPN_OFF"
+            android:targetPackage="com.victorious.mango"
+            android:targetClass="com.victorious.mango.VpnToggleActivity" />
+    </shortcut>
+</shortcuts>

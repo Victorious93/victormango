@@ -1,21 +1,19 @@
 package com.victorious.mango.ui.theme.fleet
 
+import com.victorious.mango.fleet.SigningCerts
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.pm.Signature
 import android.database.ContentObserver
 import android.database.Cursor
 import android.net.Uri
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.security.MessageDigest
 import java.util.concurrent.Executors
 
 /**
@@ -74,16 +72,7 @@ class FleetThemeClient(context: Context) {
         private const val TAG = "FleetTheme"
 
         /** SHA-256 of the package's current signers (not the rotation history, so a revoked old key never matches). */
-        @Suppress("DEPRECATION")
-        fun signerDigests(pm: PackageManager, pkg: String): List<String> = runCatching {
-            val sigs: Array<Signature> = if (Build.VERSION.SDK_INT >= 28) {
-                val si = pm.getPackageInfo(pkg, PackageManager.GET_SIGNING_CERTIFICATES).signingInfo ?: return emptyList()
-                if (si.hasMultipleSigners()) si.apkContentsSigners else arrayOf(si.signingCertificateHistory.last())
-            } else {
-                pm.getPackageInfo(pkg, PackageManager.GET_SIGNATURES).signatures
-            } ?: emptyArray()
-            sigs.map { s -> MessageDigest.getInstance("SHA-256").digest(s.toByteArray()).joinToString(":") { "%02X".format(it) } }
-        }.getOrDefault(emptyList())
+        fun signerDigests(pm: PackageManager, pkg: String): List<String> = SigningCerts.sha256(pm, pkg)
     }
 }
 
