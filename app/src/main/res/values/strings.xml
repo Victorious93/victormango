@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">VictorMango</string>
+    <string name="shortcut_vpn_on">Router VPN on</string>
+    <string name="shortcut_vpn_on_long">Turn Router VPN on</string>
+    <string name="shortcut_vpn_off">Router VPN off</string>
+    <string name="shortcut_vpn_off_long">Turn Router VPN off</string>
+    <string name="shortcut_vpn_disabled">Router VPN is not available</string>
+    <string name="perm_read_vpn_state_label">Read VictorMango router VPN state</string>
+    <string name="perm_read_vpn_state_desc">Allows VictorLaunch to read whether the GL.iNet router VPN client is on, and which profile is in use. It cannot turn the VPN on or off by itself.</string>
+</resources>

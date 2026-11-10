@@ -1,5 +1,6 @@
 package com.victorious.mango.ui.theme.fleet
 
+import com.victorious.mango.fleet.VictorLaunchPins
 import org.json.JSONObject
 
 
@@ -8,7 +9,7 @@ import org.json.JSONObject
  * (Victorious93/victorlaunch docs/specs/FLEET_THEME.md). Everything here is pure so it is unit-tested.
  */
 object FleetThemeContract {
-    const val PROVIDER_PACKAGE = "com.victorious.launch"
+    const val PROVIDER_PACKAGE = VictorLaunchPins.PACKAGE
     const val AUTHORITY = "com.victorious.launch.theme"
     const val URI = "content://$AUTHORITY/current"
     const val ACTION_CHANGED = "com.victorious.launch.action.FLEET_THEME_CHANGED"
@@ -17,27 +18,17 @@ object FleetThemeContract {
     /**
      * SHA-256 signing-cert pins for [PROVIDER_PACKAGE]. The fleet does not share a signing key, so the
      * provider's signature permission cannot be relied on; we check package + cert ourselves.
-     * VictorLaunch debug cert, from victorlaunch FleetManifest.kt / docs/fleet-manifest.md (the old
-     * 1B:06… key was revoked). Add the release cert here once VictorLaunch publishes one.
+     * See [VictorLaunchPins] (add the release cert there and in arrays.xml once published).
      */
-    val PROVIDER_CERT_PINS: Set<String> = setOf(
-        "B9:9A:AF:E2:C1:41:8B:5D:64:AA:0D:4B:AC:61:FC:F7:A7:BA:81:44:35:E0:EF:89:E8:AA:55:BE:56:4E:4A:69",
-    )
+    val PROVIDER_CERT_PINS: Set<String> = VictorLaunchPins.CERT_PINS
 
     val PALETTE_KEYS = listOf("background", "surface", "primary", "secondary", "onBackground", "muted", "danger", "stale", "tile")
 
-    /** Uppercase colon form; accepts "b99aaf…" or "B9:9A:…". */
-    fun normalizeCert(digest: String): String {
-        val hex = digest.filter { it.isLetterOrDigit() }.uppercase()
-        return hex.chunked(2).joinToString(":")
-    }
+    fun normalizeCert(digest: String): String = VictorLaunchPins.normalizeCert(digest)
 
     /** Trusted only if it is the expected package and every current signer is pinned. */
-    fun isTrustedProvider(packageName: String?, signerDigests: List<String>): Boolean {
-        if (packageName != PROVIDER_PACKAGE || signerDigests.isEmpty()) return false
-        val pins = PROVIDER_CERT_PINS.map(::normalizeCert).toSet()
-        return signerDigests.all { normalizeCert(it) in pins }
-    }
+    fun isTrustedProvider(packageName: String?, signerDigests: List<String>): Boolean =
+        VictorLaunchPins.isTrusted(packageName, signerDigests)
 
     /** `#RRGGBB` or `#AARRGGBB` to ARGB; null when malformed. */
     fun parseHex(value: String?): Long? {

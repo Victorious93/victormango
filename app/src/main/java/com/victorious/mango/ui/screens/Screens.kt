@@ -1,9 +1,14 @@
 package com.victorious.mango.ui.screens
 
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.victorious.mango.router.*
+import com.victorious.mango.vpn.VpnStateCache
+import kotlinx.coroutines.launch
 
 @Composable
 private fun <T> load(client: RouterClient, block: suspend RouterClient.() -> T): T? {
@@ -14,6 +19,7 @@ private fun <T> load(client: RouterClient, block: suspend RouterClient.() -> T):
 
 @Composable
 fun StatusScreen(client: RouterClient) = ScreenScaffold("Status", "Router overview") {
+    RouterLoginCard(client)
     val s = load(client) { systemStatus() }
     NeonCard("System") {
         InfoRow("Model", s?.model ?: "—"); InfoRow("Hostname", s?.hostname ?: "—")
@@ -21,6 +27,39 @@ fun StatusScreen(client: RouterClient) = ScreenScaffold("Status", "Router overvi
         InfoRow("Memory", "${s?.memUsedPct ?: 0}%")
     }
     NeonCard("Network") { InfoRow("WAN", if (s?.wanUp == true) "Up" else "Down"); InfoRow("Clients", "${s?.clients ?: 0}") }
+}
+
+@Composable
+private fun RouterLoginCard(client: RouterClient) {
+    val context = LocalContext.current
+    val store = remember { RouterStore(context) }
+    val saved = remember { store.load() }
+    var host by remember { mutableStateOf(saved?.host ?: RouterStore.DEFAULT_HOST) }
+    var user by remember { mutableStateOf(saved?.username ?: "root") }
+    var pass by remember { mutableStateOf(saved?.password ?: "") }
+    var message by remember { mutableStateOf(if (saved != null) "Saved login for ${saved.host}" else "Not connected") }
+    var busy by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    NeonCard("Router") {
+        OutlinedTextField(host, { host = it }, label = { Text("Host") }, singleLine = true)
+        OutlinedTextField(user, { user = it }, label = { Text("Username") }, singleLine = true)
+        OutlinedTextField(pass, { pass = it }, label = { Text("Password") }, singleLine = true, visualTransformation = PasswordVisualTransformation())
+        Text(message)
+        Button(enabled = !busy, onClick = {
+            busy = true
+            scope.launch {
+                val result = runCatching {
+                    client.login(host, user, pass)
+                    store.save(host, user, pass)
+                    val snap = client.vpnSnapshot()
+                    VpnStateCache.update(context, snap)
+                    "Connected to ${snap.displayRouter}"
+                }
+                message = result.getOrElse { "Login failed: ${it.message ?: it.javaClass.simpleName}" }
+                busy = false
+            }
+        }) { Text("Connect") }
+    }
 }
 
 @Composable
@@ -36,13 +75,15 @@ fun WifiScreen(client: RouterClient) = ScreenScaffold("Wi-Fi", "Access points & 
 }
 
 @Composable
-fun VpnScreen(client: RouterClient) = ScreenScaffold("VPN", "WireGuard client") {
-    val v = load(client) { wireGuardStatus() }
-    var on by remember(v) { mutableStateOf(v?.enabled ?: false) }
-    NeonCard("WireGuard") {
-        ToggleRow("Enabled", on) { on = it } // TODO: client.setWireGuardEnabled
-        InfoRow("State", if (v?.connected == true) "Connected" else "Disconnected")
-        InfoRow("Peer", v?.peer ?: "—"); InfoRow("RX / TX", "${v?.rxBytes ?: 0} / ${v?.txBytes ?: 0} B")
+fun VpnScreen(client: RouterClient) = ScreenScaffold("VPN", "Router WireGuard / OpenVPN client") {
+    val snap = load(client) { vpnSnapshot() }
+    NeonCard("Router VPN") {
+        InfoRow("Router", snap?.displayRouter ?: "—")
+        InfoRow("State", snap?.statusLabel ?: "—")
+        InfoRow("Profile", snap?.displayProfile ?: "—")
+        val v = snap?.active ?: snap?.wireguard ?: snap?.openvpn
+        InfoRow("RX / TX", "${v?.rxBytes ?: 0} / ${v?.txBytes ?: 0} B")
+        Text("Use the Router VPN on/off shortcuts or VictorLaunch to change this. Each change asks for confirmation.")
     }
     NeonCard("Profiles") { Text("TODO: import .conf / QR profile") }
 }

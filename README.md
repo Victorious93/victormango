@@ -11,6 +11,7 @@ Part of the Victorious fleet. Package id: `com.victorious.mango`.
 - OpenWrt ubus: https://openwrt.org/docs/techref/ubus
 - OpenWrt LuCI JSON-RPC: https://github.com/openwrt/luci/wiki/JsonRpcHowTo
 - OpenWrt UCI: https://openwrt.org/docs/guide-user/base-system/uci
+- Fleet Router VPN toggles: [docs/specs/VPN_TOGGLE.md](docs/specs/VPN_TOGGLE.md)
 
 ## Build
 `./gradlew assembleDebug` (JDK 17, Android SDK 35). CI builds the debug APK on every PR and uploads it as the `victormango-debug-apk` artifact.
@@ -18,6 +19,7 @@ Part of the Victorious fleet. Package id: `com.victorious.mango`.
 
 ## Structure
 - `router/RouterClient.kt` – transport-agnostic interface (SSH transport: TODO)
-- `router/GlInetRpcClient.kt` – GL.iNet 4.x `/rpc` client: challenge → login → sid → call (auth real, features stubbed)
+- `router/GlInetRpcClient.kt` – GL.iNet 4.x `/rpc` client: challenge → login → sid → call; official `wg-client` / `ovpn-client` start, stop, get_status
 - `router/GlInetAuth.kt` – md5-crypt + login hash, unit-tested against the doc vectors
-- `ui/screens` – Status, Wi-Fi, VPN/WireGuard, AdGuard, Tether, Firmware
+- `VpnToggleActivity` – confirm-gated Router VPN on/off for shortcuts and VictorLaunch (see docs/specs/VPN_TOGGLE.md)
+- `ui/screens` – Status (router login), Wi-Fi, VPN, AdGuard, Tether, Firmware

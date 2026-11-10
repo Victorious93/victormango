@@ -27,6 +27,12 @@ interface RouterClient {
     suspend fun setAdGuardEnabled(enabled: Boolean)
     suspend fun tetherStatus(): TetherStatus
     suspend fun firmwareInfo(): FirmwareInfo
+    /** Hostname/model from official `system.get_info`. */
+    suspend fun routerIdentity(): String
+    /** Combined WireGuard + OpenVPN client status from official get_status (+ config list fallback). */
+    suspend fun vpnSnapshot(): RouterVpnSnapshot
+    /** Official start/stop for the planned protocol; never called by the launcher activity until confirm. */
+    suspend fun applyVpn(rpc: PlannedRpc)
 
     /** Raw escape hatch: `call [sid, module, function, params]`. Returns the JSON `result`. */
     suspend fun call(module: String, function: String, params: Map<String, Any?> = emptyMap()): String
@@ -37,7 +43,7 @@ enum class Transport { HTTP_RPC, SSH /* TODO */ }
 data class Session(val host: String, val username: String, val sid: String, val transport: Transport = Transport.HTTP_RPC)
 data class SystemStatus(val model: String, val hostname: String, val uptimeSec: Long, val cpuLoad: Double, val memUsedPct: Int, val clients: Int, val wanUp: Boolean)
 data class WifiInterface(val name: String, val ssid: String, val band: String, val channel: Int, val enabled: Boolean, val encryption: String)
-data class VpnStatus(val enabled: Boolean, val connected: Boolean, val peer: String?, val rxBytes: Long, val txBytes: Long)
+data class VpnStatus(val enabled: Boolean, val connected: Boolean, val peer: String?, val rxBytes: Long, val txBytes: Long, val protocol: String? = null)
 data class AdGuardStatus(val enabled: Boolean, val dnsQueries: Long, val blocked: Long)
 data class TetherStatus(val mode: String, val active: Boolean, val device: String?)
 data class FirmwareInfo(val current: String, val latest: String?, val updateAvailable: Boolean)

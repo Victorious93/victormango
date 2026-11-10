@@ -11,9 +11,9 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 /**
- * GL.iNet 4.x `/rpc` client. Auth (challenge/login/call) is implemented per the official docs;
- * feature endpoints are STUBBED until verified on a real MT300N-V2 (module/function names
- * should be confirmed via the router web UI's network inspector).
+ * GL.iNet 4.x `/rpc` client. Auth (challenge/login/call) follows the official SDK 4.0 docs.
+ * WireGuard and OpenVPN *client* start/stop/get_status use the official `wg-client` and
+ * `ovpn-client` modules. Other feature endpoints remain stubbed until verified on a device.
  */
 class GlInetRpcClient(
     private val http: OkHttpClient = OkHttpClient.Builder().connectTimeout(3, TimeUnit.SECONDS).build(),
@@ -50,18 +50,86 @@ class GlInetRpcClient(
     }
 
     override suspend fun call(module: String, function: String, params: Map<String, Any?>): String {
-        val s = session ?: throw RouterException("Not logged in")
-        return rpc("call", JSONArray().put(s.sid).put(module).put(function).put(JSONObject(params))).opt("result").toString()
+        return callResult(module, function, JSONObject(params)).toString()
     }
 
-    // ---- Stubs (TODO: map to real modules, e.g. system/get_status, wg-client, adguardhome, upgrade) ----
+    private suspend fun callResult(module: String, function: String, params: JSONObject = JSONObject()): JSONObject {
+        val s = session ?: throw RouterException("Not logged in")
+        val raw = rpc("call", JSONArray().put(s.sid).put(module).put(function).put(params)).opt("result")
+        val obj = when (raw) {
+            is JSONObject -> raw
+            JSONObject.NULL, null -> JSONObject()
+            else -> JSONObject().put("value", raw)
+        }
+        if (obj.has("err_code") && obj.optInt("err_code") != 0) {
+            throw RouterException(obj.optString("err_msg").ifBlank { "RPC error" }, obj.optInt("err_code"))
+        }
+        return obj
+    }
+
+    // ---- Stubs (TODO: map remaining modules, e.g. wifi, adguardhome, tethering, upgrade) ----
     override suspend fun systemStatus() = SystemStatus("GL-MT300N-V2", "GL-MT300N-V2", 0, 0.0, 0, 0, false)
     override suspend fun wifiInterfaces() = listOf(WifiInterface("wlan0", "GL-MT300N-V2-xxx", "2.4GHz", 6, true, "psk2"))
     override suspend fun setWifiEnabled(iface: String, enabled: Boolean) = Unit
-    override suspend fun wireGuardStatus() = VpnStatus(false, false, null, 0, 0)
-    override suspend fun setWireGuardEnabled(enabled: Boolean) = Unit
     override suspend fun adGuardStatus() = AdGuardStatus(false, 0, 0)
     override suspend fun setAdGuardEnabled(enabled: Boolean) = Unit
     override suspend fun tetherStatus() = TetherStatus("none", false, null)
     override suspend fun firmwareInfo() = FirmwareInfo("4.x", null, false)
+
+    override suspend fun routerIdentity(): String {
+        val info = runCatching { callResult("system", "get_info") }.getOrNull() ?: return session?.host ?: "router"
+        return parseRouterIdentity(info, session?.host ?: "router")
+    }
+
+    override suspend fun vpnSnapshot(): RouterVpnSnapshot {
+        val host = session?.host ?: throw RouterException("Not logged in")
+        val name = runCatching { routerIdentity() }.getOrDefault(host)
+        val wg = clientReport(VpnProtocol.WIREGUARD)
+        val ov = clientReport(VpnProtocol.OPENVPN)
+        return RouterVpnSnapshot(host, name, wg, ov)
+    }
+
+    override suspend fun wireGuardStatus(): VpnStatus {
+        val snap = vpnSnapshot()
+        val r = snap.wireguard
+        return VpnStatus(
+            enabled = r?.isUp == true,
+            connected = r?.link == VpnLink.CONNECTED,
+            peer = r?.displayProfile,
+            rxBytes = r?.rxBytes ?: 0,
+            txBytes = r?.txBytes ?: 0,
+            protocol = r?.protocol?.wireName,
+        )
+    }
+
+    override suspend fun setWireGuardEnabled(enabled: Boolean) {
+        val snap = vpnSnapshot()
+        val plan = planToggle(if (enabled) com.victorious.mango.vpn.VpnToggleContract.Request.ON else com.victorious.mango.vpn.VpnToggleContract.Request.OFF, snap)
+        val rpc = plan.rpc ?: return
+        if (rpc.protocol != VpnProtocol.WIREGUARD) return
+        applyVpn(rpc)
+    }
+
+    override suspend fun applyVpn(rpc: PlannedRpc) {
+        val params = when (rpc.intent) {
+            VpnIntent.START -> {
+                val gid = rpc.groupId ?: throw RouterException("Missing group_id")
+                val cid = rpc.configId ?: throw RouterException("Missing profile id")
+                startParams(rpc.protocol, gid, cid)
+            }
+            VpnIntent.STOP -> stopParams(rpc.protocol, rpc.groupId, rpc.configId)
+        }
+        callResult(rpc.protocol.module, if (rpc.intent == VpnIntent.START) "start" else "stop", params)
+    }
+
+    private suspend fun clientReport(protocol: VpnProtocol): VpnClientReport? {
+        val status = runCatching { parseVpnClientStatus(protocol, callResult(protocol.module, "get_status")) }.getOrNull()
+        if (status?.hasStartIds == true) return status
+        val listed = runCatching { firstProfileFromConfigList(protocol, callResult(protocol.module, "get_all_config_list")) }.getOrNull()
+        return when {
+            status == null -> listed
+            listed == null -> status
+            else -> status.copy(groupId = listed.groupId, configId = listed.configId, profileName = status.profileName ?: listed.profileName)
+        }
+    }
 }

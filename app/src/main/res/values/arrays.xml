@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      SHA-256 of signing certs allowed to hold READ_VPN_STATE via signature|knownSigner.
+      Hex, no colons. The entry below is the VictorLaunch debug cert already pinned in
+      FleetThemeClient / VictorLaunchPins (FLEET_THEME.md).
+
+      Add the VictorLaunch release cert here once one is published, e.g.:
+      <item>RELEASECERTSHA256HEXWITHOUTCOLONS</item>
+    -->
+    <string-array name="victorlaunch_known_certs" translatable="false">
+        <item>B99AAFE2C1418B5D64AA0D4BAC61FCF7A7BA814435E0EF89E8AA55BE564E4A69</item>
+    </string-array>
+</resources>
